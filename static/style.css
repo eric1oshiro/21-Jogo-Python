@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+:root{color-scheme:dark;--felt:#145341;--felt-dark:#103f34;--gold:#e6c77b;--cream:#f6f1e6;--muted:#a8beb5;--ink:#18352d;--red:#c74646}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#1c463b 0,#101e1a 72%);color:var(--cream);font-family:'DM Sans',sans-serif;display:flex;justify-content:center;padding:26px 18px 36px}
+.game-shell{width:min(940px,100%)}
+.topbar{height:68px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:11px;color:var(--cream);font-size:17px;text-decoration:none;letter-spacing:.2px}.brand strong{color:var(--gold)}
+.brand-mark{width:38px;height:38px;display:grid;place-items:center;border:1px solid #c9ac64;border-radius:50%;color:var(--gold);font-family:'Playfair Display',serif;font-weight:700}
+.balance-box{text-align:right;display:grid;gap:3px}.balance-box span,.eyebrow{font-size:10px;letter-spacing:1.5px;color:var(--muted);font-weight:700}.balance-box strong{font-size:16px;color:var(--gold)}
+.table{position:relative;min-height:530px;overflow:hidden;border:1px solid rgba(230,199,123,.52);border-radius:48% / 15%;background:radial-gradient(ellipse at 50% 43%,#1b7055 0,#145341 52%,#103e33 100%);box-shadow:inset 0 0 0 8px rgba(8,36,29,.14),inset 0 0 60px rgba(5,30,23,.25),0 24px 65px #050d0b80;padding:28px clamp(20px,7vw,74px);display:flex;flex-direction:column;justify-content:space-between}
+.table:before{content:"";position:absolute;inset:12px;border:1px solid rgba(230,199,123,.13);border-radius:inherit;pointer-events:none}
+.table-label{position:relative;z-index:1;text-align:center;color:#c6d6cc;font-size:10px;letter-spacing:1.7px;font-weight:700}.live-dot{display:inline-block;width:6px;height:6px;background:#8bd0a6;border-radius:50%;vertical-align:1px;margin-right:5px;box-shadow:0 0 9px #8bd0a6}.table-divider{color:var(--gold);padding:0 4px}
+.hand-area{position:relative;z-index:1;min-height:153px}.dealer-area{margin-top:13px}.player-area{margin-bottom:3px}
+.hand-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}.hand-heading h2{font-family:'Playfair Display',serif;margin:3px 0 0;font-size:22px;font-weight:600}.score{width:38px;height:38px;display:grid;place-items:center;border:1px solid #ffffff4a;border-radius:50%;font-weight:700;font-size:15px;color:var(--cream);background:#092d2570}
+.cards{display:flex;align-items:center;min-height:102px;padding-left:6px}.playing-card{width:68px;height:96px;background:linear-gradient(145deg,#fffdf7,#eee8da);border-radius:8px;color:var(--ink);box-shadow:0 5px 12px #001b14a8;border:1px solid #fff;position:relative;margin-left:-6px;padding:7px 8px;animation:deal .24s ease-out both}.playing-card+.playing-card{margin-left:9px}.playing-card.red{color:var(--red)}.card-corner{display:flex;flex-direction:column;align-items:center;font-family:Georgia,serif;font-weight:700;font-size:15px;line-height:1.05}.card-corner small{font-size:13px}.card-center{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;opacity:.9}.card-back{background:repeating-linear-gradient(45deg,#e4c476 0,#e4c476 2px,#214d3f 2px,#214d3f 5px);border:4px solid #f7f1e4}.card-back:after{content:"21";position:absolute;inset:13px 16px;border:1px solid #e7ce8c;border-radius:50%;display:grid;place-items:center;color:#e7ce8c;font-family:'Playfair Display',serif;font-weight:700;font-size:17px}.card-back .card-corner,.card-back .card-center{display:none}
+.round-message{align-self:center;z-index:1;min-height:38px;padding:10px 20px;border:1px solid #ffffff2b;border-radius:20px;background:#082c2482;color:#f5e3b5;text-align:center;font-size:13px;letter-spacing:.1px}.round-message.win{color:#b8efc6;border-color:#a0d9a744}.round-message.lose{color:#ffd0c8;border-color:#ffb1a044}
+.table-decoration{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:7px;color:#ffffff0b;font-size:16px;pointer-events:none}
+.controls{display:flex;justify-content:center;min-height:116px;padding:24px 12px 9px}.bet-controls{display:grid;gap:8px;width:min(440px,100%)}.bet-controls label{font-size:12px;color:var(--muted)}.bet-entry{display:flex;align-items:center;gap:10px}.bet-entry>span{position:absolute;margin-left:12px;color:#71857c;font-size:13px}.bet-entry input{width:112px;height:44px;border:1px solid #40534b;border-radius:8px;background:#17241f;color:var(--cream);padding:0 9px 0 34px;font:inherit;outline:none}.bet-entry input:focus{border-color:var(--gold)}
+.button{border:0;border-radius:8px;padding:0 21px;height:44px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:transform .15s,filter .15s}.button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}.button:disabled{opacity:.5;cursor:not-allowed}.button-primary{background:linear-gradient(180deg,#ecd38e,#d7b966);color:#27372c;box-shadow:0 3px 10px #0003}.button-secondary{background:#f6f1e6;color:#173b2f}.button-quiet{background:transparent;border:1px solid #64766d;color:#c9d4cc}.action-controls,.finished-controls{display:flex;justify-content:center;align-items:center;gap:12px}.button-icon{font-size:17px;vertical-align:-1px;margin-right:4px}.fine-print{color:#8d9c94;font-size:10px;margin:11px 0 0;text-align:center}footer{text-align:center;color:#72877d;font-size:10px;letter-spacing:1.2px;padding:4px}
+@keyframes deal{from{opacity:0;transform:translateY(-12px) rotate(-5deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
+@media(max-width:600px){body{padding:12px 12px 22px}.topbar{margin-bottom:12px}.table{min-height:510px;padding:27px 20px;border-radius:42% / 11%}.table-label{font-size:9px}.hand-area{min-height:143px}.playing-card{width:58px;height:83px;padding:6px}.card-corner{font-size:13px}.card-corner small{font-size:11px}.card-center{font-size:28px}.card-back:after{inset:10px 12px;font-size:15px}.round-message{font-size:11px;padding:9px 13px;max-width:95%}.controls{padding-top:20px}.bet-entry{gap:7px}.bet-entry input{width:94px}.button{padding:0 13px;font-size:12px}.action-controls,.finished-controls{gap:8px}.hand-heading h2{font-size:20px}}
+
+/* Layout atualizado: saldo central e controles ao lado da mesa. */
+.game-shell{width:min(1160px,100%)}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;justify-content:initial}
+.brand{grid-column:1;justify-self:start}
+.balance-box{grid-column:2;justify-self:center;text-align:center}
+.topbar-spacer{grid-column:3}
+.game-layout{display:grid;grid-template-columns:minmax(210px,250px) minmax(0,1fr);grid-template-areas:"controls table";gap:24px;align-items:stretch}
+.game-layout>.controls{grid-area:controls;min-height:530px;padding:28px 18px;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:22px;border:1px solid #ffffff1a;border-radius:16px;background:linear-gradient(160deg,#1a2c25,#14221d);box-shadow:0 18px 45px #050d0b55}
+.controls-heading h2{font-family:'Playfair Display',serif;margin:5px 0 0;font-size:23px}
+.bet-controls{width:100%;gap:10px}
+.bet-entry{display:grid;grid-template-columns:1fr;gap:10px}
+.bet-entry>span{position:absolute;margin:14px 0 0 12px}
+.bet-entry input{width:100%}
+.action-controls,.finished-controls{flex-direction:column;align-items:stretch;gap:10px}
+.action-controls .button,.finished-controls .button{width:100%}
+.button-hit{background:linear-gradient(180deg,#39ad68,#21864c);color:white;box-shadow:0 4px 14px #0b5c3266}
+.button-stand{background:linear-gradient(180deg,#e05d59,#b93338);color:white;box-shadow:0 4px 14px #731d275c}
+.game-layout>.table{grid-area:table;min-width:0}
+.game-layout>footer{grid-column:2;color:#72877d;font-size:10px;letter-spacing:1.2px;padding:4px;text-align:center}
+.game-layout>.controls .fine-print{margin:0;text-align:left;line-height:1.6}
+.round-message{max-width:min(90%,650px);transition:all .25s ease}
+.round-message.win,.round-message.lose{min-height:58px;padding:15px 25px;border-radius:16px;font-size:clamp(18px,2.2vw,25px);font-weight:800;letter-spacing:.5px;box-shadow:0 8px 28px #001b1480}
+.round-message.win{color:#c6ffd2;border:1px solid #79e69a99;background:linear-gradient(135deg,#0e683fef,#124b37f2);text-shadow:0 0 18px #56ff9e88;animation:victory-glow 1.8s ease-in-out infinite alternate}
+.round-message.lose{color:#ffe0df;border:1px solid #ff777799;background:linear-gradient(135deg,#842d35f2,#501f2bef);text-shadow:0 0 18px #ff4f5b88;animation:defeat-shake .55s ease-out both}
+.round-message.push{color:#ffe8aa;border-color:#e6c77b99;background:#4a3c20d9;font-size:16px;font-weight:700}
+.round-message.error{color:#ffd0c8;border-color:#ffb1a044}
+@keyframes victory-glow{from{box-shadow:0 0 12px #41e98733,0 8px 28px #001b1480}to{box-shadow:0 0 27px #41e98788,0 8px 32px #001b1480}}
+@keyframes defeat-shake{0%{transform:translateX(0);opacity:.4}18%{transform:translateX(-8px)}36%{transform:translateX(7px)}54%{transform:translateX(-5px)}72%{transform:translateX(3px)}100%{transform:translateX(0);opacity:1}}
+@media(max-width:760px){.game-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"table" "controls";gap:14px}.game-layout>.table{min-height:500px}.game-layout>.controls{min-height:0;padding:20px;gap:16px}.game-layout>.controls .bet-controls{max-width:440px}.game-layout>.controls .bet-entry{grid-template-columns:112px minmax(0,1fr)}.game-layout>.controls .bet-entry input{width:100%}.game-layout>.controls .action-controls,.game-layout>.controls .finished-controls{flex-direction:row}.game-layout>.controls .action-controls .button,.game-layout>.controls .finished-controls .button{width:auto;flex:1}.game-layout>.controls .fine-print{text-align:center}.game-layout>footer{grid-column:1}}
+@media(max-width:600px){.game-layout>.table{min-height:510px}.game-layout>.controls .bet-entry{grid-template-columns:94px minmax(0,1fr)}.round-message.win,.round-message.lose{font-size:17px;padding:13px 15px}.round-message.push{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.round-message.win,.round-message.lose{animation:none}.playing-card{animation:none}}
