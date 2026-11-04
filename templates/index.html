@@ -6,52 +6,103 @@
     <meta name="theme-color" content="#123b32">
     <title>Jogo de 21 — Blackjack</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2"></script>
+    <script src="{{ url_for('static', filename='supabase-config.js') }}" defer></script>
     <script src="{{ url_for('static', filename='game.js') }}" defer></script>
   </head>
   <body>
     <main class="game-shell">
-      <header class="topbar">
-        <a class="brand" href="/" aria-label="Jogo de 21, início"><span class="brand-mark">21</span><span>Jogo de <strong>21</strong></span></a>
-        <div class="balance-box"><span>SEU SALDO</span><strong id="balance">R$ 100,00</strong></div>
-        <div class="topbar-spacer" aria-hidden="true"></div>
-      </header>
+      <section class="auth-screen" id="auth-panel" aria-labelledby="auth-title">
+        <div class="auth-card">
+          <a class="brand auth-brand" href="/" aria-label="Jogo de 21, início"><span class="brand-mark">21</span><span>Jogo de <strong>21</strong></span></a>
+          <span class="eyebrow auth-eyebrow">SUA MESA ESTÁ ESPERANDO</span>
+          <h1 id="auth-title">Entre no jogo</h1>
+          <p class="auth-intro">Entre na sua conta ou crie uma para guardar seu apelido.</p>
 
-      <div class="game-layout">
-        <section class="controls" aria-label="Controles do jogo">
-          <div class="controls-heading"><span class="eyebrow">SUA JOGADA</span><h2>Controles</h2></div>
-          <div class="bet-controls" id="bet-controls">
-            <label for="bet-input">Sua aposta</label>
-            <div class="bet-entry"><span>R$</span><input id="bet-input" type="number" min="1" step="1" value="10" inputmode="decimal"><button class="button button-primary" id="start-button">Começar rodada</button></div>
+          <div class="auth-tabs" role="tablist" aria-label="Acesso à conta">
+            <button class="auth-tab active" id="login-tab" type="button" role="tab" aria-selected="true">Entrar</button>
+            <button class="auth-tab" id="signup-tab" type="button" role="tab" aria-selected="false">Criar conta</button>
           </div>
-          <div class="action-controls" id="action-controls" hidden>
-            <button class="button button-hit" id="hit-button"><span class="button-icon">＋</span> Comprar carta</button>
-            <button class="button button-stand" id="stand-button">Parar</button>
-          </div>
-          <div class="finished-controls" id="finished-controls" hidden>
-            <button class="button button-primary" id="next-button">Jogar novamente</button>
-            <button class="button button-quiet" id="reset-button">Reiniciar saldo</button>
-          </div>
-          <p class="fine-print">Jogo demonstrativo com fichas fictícias. Sem dinheiro real.</p>
-        </section>
 
-        <section class="table" aria-label="Mesa de blackjack">
-          <div class="table-label"><span class="live-dot"></span> MESA PRINCIPAL <span class="table-divider">·</span> DEALER PARA NO 17</div>
+          <form id="login-form" class="auth-form">
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="voce@email.com">
+            <label for="login-password">Senha</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
+            <button class="button button-primary auth-submit" type="submit">Entrar</button>
+          </form>
 
-          <section class="hand-area dealer-area" aria-labelledby="dealer-title">
-            <div class="hand-heading"><div><span class="eyebrow">A BANCA</span><h2 id="dealer-title">Dealer</h2></div><div class="score" id="dealer-score">—</div></div>
-            <div class="cards" id="dealer-cards" aria-label="Cartas do dealer"></div>
-          </section>
-
-          <div class="round-message" id="message" role="status" aria-live="polite">Faça sua aposta para começar uma rodada.</div>
-
-          <section class="hand-area player-area" aria-labelledby="player-title">
-            <div class="hand-heading"><div><span class="eyebrow">SUA MÃO</span><h2 id="player-title">Jogador</h2></div><div class="score" id="player-score">—</div></div>
-            <div class="cards" id="player-cards" aria-label="Suas cartas"></div>
-          </section>
-
-          <div class="table-decoration" aria-hidden="true"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div>
+          <form id="signup-form" class="auth-form" hidden>
+            <label for="signup-nickname">Apelido</label>
+            <input id="signup-nickname" name="nickname" type="text" minlength="3" maxlength="20" autocomplete="nickname" required placeholder="Como aparecerá na mesa">
+            <label for="signup-email">Email</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" required placeholder="voce@email.com">
+            <label for="signup-password">Senha <span class="label-hint">mínimo de 8 caracteres</span></label>
+            <input id="signup-password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Crie uma senha">
+            <button class="button button-primary auth-submit" type="submit">Criar conta</button>
+          </form>
+          <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+          <p class="auth-disclaimer">Contas gratuitas para jogar com fichas fictícias.</p>
         </div>
-        <footer>♣ &nbsp; Boa sorte e divirta-se &nbsp; ♣</footer>
+      </section>
+
+      <section class="profile-screen" id="profile-panel" hidden aria-labelledby="profile-title">
+        <div class="auth-card profile-card">
+          <a class="brand auth-brand" href="/" aria-label="Jogo de 21, início"><span class="brand-mark">21</span><span>Jogo de <strong>21</strong></span></a>
+          <span class="eyebrow auth-eyebrow">SÓ FALTA UM PASSO</span>
+          <h1 id="profile-title">Escolha seu apelido</h1>
+          <p class="auth-intro">Esse nome será mostrado aos outros jogadores na mesa.</p>
+          <form id="profile-form" class="auth-form">
+            <label for="profile-nickname">Apelido</label>
+            <input id="profile-nickname" name="nickname" type="text" minlength="3" maxlength="20" autocomplete="nickname" required placeholder="3 a 20 caracteres">
+            <button class="button button-primary auth-submit" type="submit">Salvar apelido</button>
+          </form>
+          <p class="auth-message" id="profile-message" role="status" aria-live="polite"></p>
+          <button class="button button-quiet profile-signout" id="profile-signout" type="button">Sair da conta</button>
+        </div>
+      </section>
+
+      <div id="game-app" hidden>
+        <header class="topbar">
+          <a class="brand" href="/" aria-label="Jogo de 21, início"><span class="brand-mark">21</span><span>Jogo de <strong>21</strong></span></a>
+          <div class="balance-box"><span>SEU SALDO</span><strong id="balance">R$ 100,00</strong></div>
+          <div class="user-menu"><span id="player-nickname"></span><button class="button button-quiet signout-button" id="signout-button" type="button">Sair</button></div>
+        </header>
+
+        <div class="game-layout">
+          <section class="controls" aria-label="Controles do jogo">
+            <div class="controls-heading"><span class="eyebrow">SUA JOGADA</span><h2>Controles</h2></div>
+            <div class="bet-controls" id="bet-controls">
+              <label for="bet-input">Sua aposta</label>
+              <div class="bet-entry"><span>R$</span><input id="bet-input" type="number" min="1" step="1" value="10" inputmode="decimal"><button class="button button-primary" id="start-button">Começar rodada</button></div>
+            </div>
+            <div class="action-controls" id="action-controls" hidden>
+              <button class="button button-hit" id="hit-button"><span class="button-icon">＋</span> Comprar carta</button>
+              <button class="button button-stand" id="stand-button">Parar</button>
+            </div>
+            <div class="finished-controls" id="finished-controls" hidden>
+              <button class="button button-primary" id="next-button">Jogar novamente</button>
+              <button class="button button-quiet" id="reset-button">Reiniciar saldo</button>
+            </div>
+            <p class="fine-print">Jogo demonstrativo com fichas fictícias. Sem dinheiro real.</p>
+          </section>
+
+          <section class="table" aria-label="Mesa de blackjack">
+            <div class="table-label"><span class="live-dot"></span> MESA PRINCIPAL <span class="table-divider">·</span> DEALER PARA NO 17</div>
+            <section class="hand-area dealer-area" aria-labelledby="dealer-title">
+              <div class="hand-heading"><div><span class="eyebrow">A BANCA</span><h2 id="dealer-title">Dealer</h2></div><div class="score" id="dealer-score">—</div></div>
+              <div class="cards" id="dealer-cards" aria-label="Cartas do dealer"></div>
+            </section>
+            <div class="round-message" id="message" role="status" aria-live="polite">Faça sua aposta para começar uma rodada.</div>
+            <section class="hand-area player-area" aria-labelledby="player-title">
+              <div class="hand-heading"><div><span class="eyebrow">SUA MÃO</span><h2 id="player-title">Jogador</h2></div><div class="score" id="player-score">—</div></div>
+              <div class="cards" id="player-cards" aria-label="Suas cartas"></div>
+            </section>
+            <div class="table-decoration" aria-hidden="true"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div>
+          </section>
+          <footer>♣ &nbsp; Boa sorte e divirta-se &nbsp; ♣</footer>
+        </div>
+      </div>
     </main>
   </body>
 </html>

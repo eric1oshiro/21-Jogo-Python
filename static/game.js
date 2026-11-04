@@ -1,4 +1,196 @@
+const { createClient } = window.supabase;
+const { url, publishableKey } = window.SUPABASE_CONFIG;
+
+const supabase = createClient(url, publishableKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
+
 const money = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+let authViewVersion = 0;
+let signedInUser = null;
+
+function showAuthMessage(message, isError = false) {
+  const element = document.querySelector('#auth-message');
+  element.textContent = message;
+  element.classList.toggle('is-error', isError);
+}
+
+function showProfileMessage(message, isError = false) {
+  const element = document.querySelector('#profile-message');
+  element.textContent = message;
+  element.classList.toggle('is-error', isError);
+}
+
+function setAuthMode(mode) {
+  const isLogin = mode === 'login';
+  document.querySelector('#login-form').hidden = !isLogin;
+  document.querySelector('#signup-form').hidden = isLogin;
+  document.querySelector('#login-tab').classList.toggle('active', isLogin);
+  document.querySelector('#signup-tab').classList.toggle('active', !isLogin);
+  document.querySelector('#login-tab').setAttribute('aria-selected', String(isLogin));
+  document.querySelector('#signup-tab').setAttribute('aria-selected', String(!isLogin));
+  document.querySelector('#auth-title').textContent = isLogin ? 'Entre no jogo' : 'Crie sua conta';
+  showAuthMessage('');
+}
+
+function showAuthScreen() {
+  document.querySelector('#auth-panel').hidden = false;
+  document.querySelector('#profile-panel').hidden = true;
+  document.querySelector('#game-app').hidden = true;
+}
+
+function showProfileScreen(user) {
+  document.querySelector('#auth-panel').hidden = true;
+  document.querySelector('#profile-panel').hidden = false;
+  document.querySelector('#game-app').hidden = true;
+  const nickname = user.user_metadata?.nickname || '';
+  document.querySelector('#profile-nickname').value = nickname;
+  showProfileMessage('');
+}
+
+async function showGameScreen(nickname) {
+  document.querySelector('#auth-panel').hidden = true;
+  document.querySelector('#profile-panel').hidden = true;
+  document.querySelector('#game-app').hidden = false;
+  document.querySelector('#player-nickname').textContent = nickname;
+  await run(() => api('/api/state'));
+}
+
+async function routeSession(session) {
+  const version = ++authViewVersion;
+  signedInUser = session?.user || null;
+  if (!signedInUser) {
+    showAuthScreen();
+    return;
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('nickname')
+    .eq('id', signedInUser.id)
+    .maybeSingle();
+
+  if (version !== authViewVersion) return;
+  if (error) {
+    showProfileScreen(signedInUser);
+    showProfileMessage(`Não consegui carregar seu perfil: ${error.message}`, true);
+    return;
+  }
+  if (!profile) {
+    showProfileScreen(signedInUser);
+    return;
+  }
+  await showGameScreen(profile.nickname);
+}
+
+async function runAuthForm(form, action) {
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    await action(new FormData(form));
+  } catch (error) {
+    showAuthMessage(error.message || 'Não foi possível concluir o acesso.', true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.querySelector('#login-tab').addEventListener('click', () => setAuthMode('login'));
+document.querySelector('#signup-tab').addEventListener('click', () => setAuthMode('signup'));
+
+document.querySelector('#login-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  runAuthForm(event.currentTarget, async (formData) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: String(formData.get('email')).trim(),
+      password: String(formData.get('password')),
+    });
+    if (error) throw error;
+    showAuthMessage('Login realizado. Carregando sua mesa...');
+    await routeSession(data.session);
+  });
+});
+
+document.querySelector('#signup-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  runAuthForm(event.currentTarget, async (formData) => {
+    const nickname = String(formData.get('nickname')).trim();
+    if (nickname.length < 3 || nickname.length > 20) {
+      throw new Error('O apelido precisa ter entre 3 e 20 caracteres.');
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email: String(formData.get('email')).trim(),
+      password: String(formData.get('password')),
+      options: {
+        data: { nickname },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) throw error;
+    if (data.session) {
+      showAuthMessage('Conta criada! Vamos preparar seu perfil...');
+      await routeSession(data.session);
+    } else {
+      setAuthMode('login');
+      showAuthMessage('Conta criada. Confira seu email para confirmar o cadastro e depois entre.');
+    }
+  });
+});
+
+document.querySelector('#profile-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!signedInUser) return;
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const nickname = document.querySelector('#profile-nickname').value.trim();
+  if (nickname.length < 3 || nickname.length > 20) {
+    showProfileMessage('O apelido precisa ter entre 3 e 20 caracteres.', true);
+    return;
+  }
+  button.disabled = true;
+  showProfileMessage('Salvando apelido...');
+  const { error } = await supabase.from('profiles').insert({ id: signedInUser.id, nickname });
+  button.disabled = false;
+  if (error) {
+    const message = error.code === '23505'
+      ? 'Esse apelido já está sendo usado. Escolha outro.'
+      : `Não foi possível salvar o apelido: ${error.message}`;
+    showProfileMessage(message, true);
+    return;
+  }
+  await showGameScreen(nickname);
+});
+
+async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    showProfileMessage(error.message, true);
+    return;
+  }
+  signedInUser = null;
+  showAuthScreen();
+  setAuthMode('login');
+  showAuthMessage('Você saiu da sua conta.');
+}
+
+document.querySelector('#signout-button').addEventListener('click', signOut);
+document.querySelector('#profile-signout').addEventListener('click', signOut);
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  queueMicrotask(() => { void routeSession(session); });
+});
+
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    showAuthMessage(`Não consegui conectar ao Supabase: ${error.message}`, true);
+    return;
+  }
+  return routeSession(data.session);
+});
 
 async function api(path, data) {
   const options = data ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) } : {};
@@ -56,5 +248,3 @@ document.querySelector('#hit-button').addEventListener('click', () => run(() => 
 document.querySelector('#stand-button').addEventListener('click', () => run(() => api('/api/action', { action: 'stand' })));
 document.querySelector('#next-button').addEventListener('click', () => run(() => api('/api/new-round', {})));
 document.querySelector('#reset-button').addEventListener('click', () => run(() => api('/api/reset', {})));
-
-run(() => api('/api/state'));

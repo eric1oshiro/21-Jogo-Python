@@ -8,6 +8,7 @@ Um jogo simples de 21 (Blackjack) feito em Python. Jogue no navegador contra o d
 
 - Python 3.10 ou superior
 - pip
+- Uma conta no projeto Supabase usado pelo jogo
 
 ### Como executar
 
@@ -44,6 +45,21 @@ Um jogo simples de 21 (Blackjack) feito em Python. Jogue no navegador contra o d
 
 5. Abra [http://127.0.0.1:5000](http://127.0.0.1:5000) no navegador.
 
+### Cadastro e login
+
+A versão web usa Supabase Auth para cadastro e login com email e senha. O apelido fica na tabela `public.profiles`; a senha é gerenciada pelo Supabase Auth e não é armazenada pelo jogo.
+
+Para receber o link de confirmação quando estiver rodando localmente, adicione estes endereços em **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**:
+
+```text
+http://127.0.0.1:5000/**
+http://localhost:5000/**
+```
+
+Ao publicar o jogo, adicione também o domínio publicado nessa lista. O cliente usa a URL do projeto e a chave publishable em `static/supabase-config.js`. Essa chave é feita para uso no navegador; nunca coloque uma chave `secret` ou `service_role` nesse arquivo.
+
+O SQL da tabela e das políticas de acesso está em [`supabase/profiles.sql`](supabase/profiles.sql). O acesso à tabela exige login e cada usuário só pode criar ou alterar o próprio perfil. Apelidos são únicos, ignorando diferenças entre maiúsculas e minúsculas.
+
 ## Como jogar
 
 - Faça uma aposta usando seu saldo inicial de R$ 100 em fichas.
@@ -65,6 +81,7 @@ python jogo_21.py
 
 - Python e Flask para as regras e o servidor local
 - HTML, CSS e JavaScript para a interface no navegador
+- Supabase Auth e PostgreSQL para contas e apelidos
 
 ## Estrutura
 
@@ -73,10 +90,13 @@ python jogo_21.py
 ├── app.py              # servidor Flask e regras da versão web
 ├── jogo_21.py          # versão de terminal
 ├── requirements.txt    # dependências Python
+├── supabase/
+│   └── profiles.sql    # tabela de perfis e políticas RLS
 ├── templates/
 │   └── index.html       # mesa do jogo
 └── static/
-    ├── game.js          # ações e atualização da mesa
+    ├── game.js          # autenticação e ações do jogo
+    ├── supabase-config.js # URL e chave publishable do projeto
     └── style.css        # visual responsivo e cartas
 ```
 
