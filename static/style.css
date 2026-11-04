@@ -52,3 +52,7 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#1c
 @media(max-width:760px){.game-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"table" "controls";gap:14px}.game-layout>.table{min-height:500px}.game-layout>.controls{min-height:0;padding:20px;gap:16px}.game-layout>.controls .bet-controls{max-width:440px}.game-layout>.controls .bet-entry{grid-template-columns:112px minmax(0,1fr)}.game-layout>.controls .bet-entry input{width:100%}.game-layout>.controls .action-controls,.game-layout>.controls .finished-controls{flex-direction:row}.game-layout>.controls .action-controls .button,.game-layout>.controls .finished-controls .button{width:auto;flex:1}.game-layout>.controls .fine-print{text-align:center}.game-layout>footer{grid-column:1}}
 @media(max-width:600px){.game-layout>.table{min-height:510px}.game-layout>.controls .bet-entry{grid-template-columns:94px minmax(0,1fr)}.round-message.win,.round-message.lose{font-size:17px;padding:13px 15px}.round-message.push{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.round-message.win,.round-message.lose{animation:none}.playing-card{animation:none}}
+
+/* Mantém o símbolo da moeda posicionado dentro do campo da aposta. */
+.game-layout .bet-entry{position:relative}
+.game-layout .bet-entry>span{left:12px;top:22px;transform:translateY(-50%);margin:0}
