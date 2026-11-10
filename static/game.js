@@ -1,5 +1,19 @@
-const { createClient } = window.supabase;
-const { url, publishableKey } = window.SUPABASE_CONFIG;
+(() => {
+const sdk = window.supabase;
+const config = window.SUPABASE_CONFIG;
+if (!sdk?.createClient || !config?.url || !config?.publishableKey) {
+  const message = document.querySelector('#auth-message');
+  if (message) {
+    message.textContent = !sdk?.createClient
+      ? 'O cliente do Supabase não carregou. Verifique a conexão e atualize a página.'
+      : 'A configuração pública do Supabase não foi carregada. Confira static/supabase-config.js.';
+    message.classList.add('is-error');
+  }
+  return;
+}
+
+const { createClient } = sdk;
+const { url, publishableKey } = config;
 
 const supabase = createClient(url, publishableKey, {
   auth: {
@@ -23,6 +37,21 @@ function showProfileMessage(message, isError = false) {
   const element = document.querySelector('#profile-message');
   element.textContent = message;
   element.classList.toggle('is-error', isError);
+}
+
+function authErrorMessage(error) {
+  const message = String(error?.message || 'Não foi possível concluir o acesso.');
+  const normalized = message.toLowerCase();
+  if (normalized.includes('redirect') || normalized.includes('requested path')) {
+    return `O Supabase recusou o endereço de retorno. Em Authentication → URL Configuration → Redirect URLs, permita ${window.location.origin}/**.`;
+  }
+  if (normalized.includes('rate limit') || normalized.includes('too many')) {
+    return 'O limite de emails do Supabase foi atingido. Aguarde um pouco ou configure um SMTP próprio no projeto.';
+  }
+  if (normalized.includes('failed to fetch') || normalized.includes('network')) {
+    return 'Não consegui alcançar o Supabase. Verifique sua conexão, a URL e a chave em static/supabase-config.js.';
+  }
+  return message;
 }
 
 function setAuthMode(mode) {
@@ -93,7 +122,7 @@ async function runAuthForm(form, action) {
   try {
     await action(new FormData(form));
   } catch (error) {
-    showAuthMessage(error.message || 'Não foi possível concluir o acesso.', true);
+    showAuthMessage(authErrorMessage(error), true);
   } finally {
     button.disabled = false;
   }
@@ -141,6 +170,14 @@ document.querySelector('#signup-form').addEventListener('submit', (event) => {
   });
 });
 
+document.querySelector('#signup-form').addEventListener('invalid', (event) => {
+  if (event.target.validity.tooShort) {
+    const fieldName = event.target.name === 'password' ? 'A senha' : 'O apelido';
+    const minimum = event.target.name === 'password' ? '8' : '3';
+    showAuthMessage(`${fieldName} precisa ter pelo menos ${minimum} caracteres.`, true);
+  }
+}, true);
+
 document.querySelector('#profile-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!signedInUser) return;
@@ -153,16 +190,21 @@ document.querySelector('#profile-form').addEventListener('submit', async (event)
   }
   button.disabled = true;
   showProfileMessage('Salvando apelido...');
-  const { error } = await supabase.from('profiles').insert({ id: signedInUser.id, nickname });
-  button.disabled = false;
-  if (error) {
-    const message = error.code === '23505'
-      ? 'Esse apelido já está sendo usado. Escolha outro.'
-      : `Não foi possível salvar o apelido: ${error.message}`;
-    showProfileMessage(message, true);
-    return;
+  try {
+    const { error } = await supabase.from('profiles').insert({ id: signedInUser.id, nickname });
+    if (error) {
+      const message = error.code === '23505'
+        ? 'Esse apelido já está sendo usado. Escolha outro.'
+        : `Não foi possível salvar o apelido: ${error.message}`;
+      showProfileMessage(message, true);
+      return;
+    }
+    await showGameScreen(nickname);
+  } catch (error) {
+    showProfileMessage(authErrorMessage(error), true);
+  } finally {
+    button.disabled = false;
   }
-  await showGameScreen(nickname);
 });
 
 async function signOut() {
@@ -248,3 +290,4 @@ document.querySelector('#hit-button').addEventListener('click', () => run(() => 
 document.querySelector('#stand-button').addEventListener('click', () => run(() => api('/api/action', { action: 'stand' })));
 document.querySelector('#next-button').addEventListener('click', () => run(() => api('/api/new-round', {})));
 document.querySelector('#reset-button').addEventListener('click', () => run(() => api('/api/reset', {})));
+})();

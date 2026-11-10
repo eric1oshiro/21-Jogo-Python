@@ -47,7 +47,7 @@ Um jogo simples de 21 (Blackjack) feito em Python. Jogue no navegador contra o d
 
 ### Cadastro e login
 
-A versão web usa Supabase Auth para cadastro e login com email e senha. O apelido fica na tabela `public.profiles`; a senha é gerenciada pelo Supabase Auth e não é armazenada pelo jogo.
+A versão web usa Supabase Auth para cadastro e login com email e senha. O cadastro pede uma senha de pelo menos 8 caracteres e um apelido de 3 a 20 caracteres. O apelido fica na tabela `public.profiles`; a senha é gerenciada pelo Supabase Auth e não é armazenada pelo jogo.
 
 Para receber o link de confirmação quando estiver rodando localmente, adicione estes endereços em **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**:
 
@@ -59,6 +59,10 @@ http://localhost:5000/**
 Ao publicar o jogo, adicione também o domínio publicado nessa lista. O cliente usa a URL do projeto e a chave publishable em `static/supabase-config.js`. Essa chave é feita para uso no navegador; nunca coloque uma chave `secret` ou `service_role` nesse arquivo.
 
 O SQL da tabela e das políticas de acesso está em [`supabase/profiles.sql`](supabase/profiles.sql). O acesso à tabela exige login e cada usuário só pode criar ou alterar o próprio perfil. Apelidos são únicos, ignorando diferenças entre maiúsculas e minúsculas.
+
+A tela apresenta um erro legível se o cliente JavaScript do Supabase não carregar ou se o projeto recusar o endereço de retorno. Se um erro mencionar redirect, confira a lista **Redirect URLs** acima. O email de confirmação depende das configurações de Auth e SMTP do projeto.
+
+O esquema PostgreSQL das salas, participantes, partidas e estatísticas está em [`supabase/rooms_and_history.sql`](supabase/rooms_and_history.sql). As tabelas permitem no máximo quatro assentos por sala, registram aposta/saldo atuais e guardam o saldo final e a colocação de cada jogador. As gravações ficam reservadas ao servidor; clientes autenticados leem apenas salas de que participam.
 
 ## Como jogar
 
@@ -91,7 +95,8 @@ python jogo_21.py
 ├── jogo_21.py          # versão de terminal
 ├── requirements.txt    # dependências Python
 ├── supabase/
-│   └── profiles.sql    # tabela de perfis e políticas RLS
+│   ├── profiles.sql          # tabela de perfis e políticas RLS
+│   └── rooms_and_history.sql # salas, partidas e estatísticas
 ├── templates/
 │   └── index.html       # mesa do jogo
 └── static/
