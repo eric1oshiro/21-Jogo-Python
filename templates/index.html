@@ -69,7 +69,12 @@
           <div class="user-menu"><span id="player-nickname"></span><button class="button button-quiet signout-button" id="signout-button" type="button">Sair</button></div>
         </header>
 
-        <div class="game-layout">
+        <nav class="mode-nav" aria-label="Modo de jogo">
+          <button class="mode-button active" id="offline-tab" type="button">Mesa solo</button>
+          <button class="mode-button" id="online-tab" type="button">Salas online</button>
+        </nav>
+
+        <div class="game-layout" id="offline-view">
           <section class="controls" aria-label="Controles do jogo">
             <div class="controls-heading"><span class="eyebrow">SUA JOGADA</span><h2>Controles</h2></div>
             <div class="bet-controls" id="bet-controls">
@@ -102,6 +107,48 @@
           </section>
           <footer>♣ &nbsp; Boa sorte e divirta-se &nbsp; ♣</footer>
         </div>
+
+        <section class="online-view" id="online-view" hidden aria-label="Salas online">
+          <div class="online-heading">
+            <div><span class="eyebrow">JOGUE COM AMIGOS</span><h1>Salas online</h1><p>Crie uma sala ou entre em uma mesa aguardando jogadores.</p></div>
+            <div class="connection-status" id="lobby-status" role="status">Conectando…</div>
+          </div>
+          <div class="online-tabs" role="tablist" aria-label="Área online">
+            <button class="online-tab active" id="rooms-tab" type="button" role="tab" aria-selected="true">Salas disponíveis</button>
+            <button class="online-tab" id="history-tab" type="button" role="tab" aria-selected="false">Histórico</button>
+          </div>
+
+          <div class="online-grid" id="rooms-view">
+            <section class="online-card rooms-card">
+              <div class="section-heading"><div><span class="eyebrow">AGUARDANDO JOGADORES</span><h2>Mesas abertas</h2></div><button class="button button-quiet compact-button" id="refresh-rooms" type="button">Atualizar</button></div>
+              <form class="create-room-form" id="create-room-form">
+                <label for="room-capacity">Criar uma sala</label>
+                <div class="create-room-fields">
+                  <select id="room-capacity" name="capacity" aria-label="Quantidade máxima de jogadores"><option value="2">2 jogadores</option><option value="3">3 jogadores</option><option value="4" selected>4 jogadores</option></select>
+                  <select id="room-duration" name="duration" aria-label="Duração da partida"><option value="300">5 minutos</option><option value="600" selected>10 minutos</option></select>
+                </div>
+                <button class="button button-primary" type="submit">Criar sala</button>
+              </form>
+              <p class="online-message" id="rooms-message" role="status" aria-live="polite"></p>
+              <div class="room-list" id="room-list"></div>
+            </section>
+
+            <section class="online-card room-detail" id="room-detail" hidden>
+              <div class="section-heading"><div><span class="eyebrow">SUA MESA</span><h2 id="room-title">Sala</h2></div><button class="button button-quiet compact-button" id="leave-room" type="button">Sair da sala</button></div>
+              <div class="room-code-line"><span>Código para convidar</span><strong id="room-code"></strong></div>
+              <div class="section-heading roster-heading"><h3>Jogadores <span id="room-count"></span></h3><span class="online-count" id="online-count">0 online</span></div>
+              <div class="room-roster" id="room-roster"></div>
+              <p class="room-notice" id="room-notice" aria-live="polite">Aguardando mais jogadores entrarem na sala.</p>
+            </section>
+          </div>
+
+          <section class="online-card history-view" id="history-view" hidden>
+            <div class="section-heading"><div><span class="eyebrow">SEU DESEMPENHO</span><h2>Histórico de partidas</h2></div><button class="button button-quiet compact-button" id="refresh-history" type="button">Atualizar</button></div>
+            <div class="history-summary" id="history-summary"></div>
+            <div class="history-list" id="history-list"></div>
+            <p class="online-message" id="history-message" role="status" aria-live="polite"></p>
+          </section>
+        </section>
       </div>
     </main>
   </body>

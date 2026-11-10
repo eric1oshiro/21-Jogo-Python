@@ -83,3 +83,54 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#1c
 .user-menu>span{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d4e1d8;font-size:13px;font-weight:600}
 .signout-button{height:36px;padding:0 13px;font-size:11px}
 @media(max-width:600px){.auth-screen,.profile-screen{min-height:calc(100vh - 35px);padding:12px 0}.auth-card{padding:24px 20px}.auth-brand{margin-bottom:23px}.auth-card h1{font-size:27px}.topbar{grid-template-columns:1fr auto 1fr;gap:6px}.user-menu{gap:5px}.user-menu>span{max-width:82px;font-size:11px}.signout-button{padding:0 9px}}
+
+/* Lobby multiplayer, presença ao vivo e histórico de partidas. */
+.mode-nav,.online-tabs{display:flex;gap:8px;margin:0 0 18px;padding:5px;border:1px solid #ffffff1a;border-radius:12px;background:#101e1a}
+.mode-button,.online-tab{height:38px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:#a8beb5;font:600 12px 'DM Sans',sans-serif;cursor:pointer}
+.mode-button.active,.online-tab.active{background:#26483b;color:var(--gold);box-shadow:0 3px 12px #0003}
+.online-view{min-height:500px}
+.online-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:20px 0 22px}
+.online-heading h1{font:600 30px 'Playfair Display',serif;margin:6px 0 4px}
+.online-heading p{margin:0;color:var(--muted);font-size:13px}
+.connection-status{border:1px solid #ffffff20;border-radius:20px;padding:8px 12px;color:#bce8c7;font-size:11px;white-space:nowrap}
+.connection-status.is-error,.online-message.is-error{color:#ffc1bc}
+.online-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.online-card{border:1px solid #ffffff1c;border-radius:16px;background:linear-gradient(155deg,#1a2c25,#14221d);padding:22px;box-shadow:0 18px 45px #050d0b55}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.section-heading h2{font:600 22px 'Playfair Display',serif;margin:5px 0 0}
+.section-heading h3{font:600 17px 'Playfair Display',serif;margin:0}
+.compact-button{height:34px;padding:0 12px;font-size:11px;white-space:nowrap}
+.create-room-form{display:grid;gap:10px;border-top:1px solid #ffffff18;margin-top:18px;padding-top:16px}
+.create-room-form label{font-size:12px;color:#d1ddd5;font-weight:700}
+.create-room-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.create-room-fields select{height:40px;min-width:0;border:1px solid #40534b;border-radius:8px;background:#101b17;color:var(--cream);padding:0 10px;font:12px 'DM Sans',sans-serif}
+.create-room-form>.button{width:100%}
+.online-message{min-height:18px;margin:12px 0;color:var(--muted);font-size:12px;line-height:1.5}
+.room-list{display:grid;gap:9px}
+.room-list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #ffffff17;border-radius:10px;padding:12px;background:#0d1b1680}
+.room-list-item>div{display:grid;gap:4px;min-width:0}
+.room-list-item strong{font-size:13px;color:#f1e5c4}
+.room-list-item span{font-size:10px;line-height:1.45;color:var(--muted)}
+.room-code-line{display:flex;align-items:center;justify-content:space-between;margin:20px 0 24px;padding:14px;border:1px dashed #e6c77b66;border-radius:10px;background:#e6c77b0b}
+.room-code-line span{font-size:12px;color:var(--muted)}
+.room-code-line strong{font-size:22px;letter-spacing:3px;color:var(--gold)}
+.roster-heading{margin-bottom:12px}
+.online-count{font-size:11px;color:#bce8c7}
+.room-roster{display:grid;gap:8px}
+.roster-player{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 12px;border:1px solid #ffffff16;border-radius:9px;background:#0d1b1680}
+.roster-player strong{font-size:12px;color:#e6eee8}
+.roster-player>span{font-size:10px;color:var(--muted)}
+.roster-player .player-presence{grid-column:1/-1;color:#93a79c}
+.roster-player.is-online .player-presence{color:#9fe2ad}
+.room-notice{margin:15px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.history-view .section-heading{margin-bottom:16px}
+.history-summary{margin:0 0 14px;color:var(--gold);font-size:13px;font-weight:700}
+.history-list{display:grid;gap:9px}
+.history-item{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;border:1px solid #ffffff18;border-radius:10px;padding:13px;background:#0d1b1680}
+.history-item strong{grid-row:span 2;color:#bce8c7;font-size:13px}
+.history-item.loss strong{color:#ffc1bc}
+.history-item.tie strong{color:#f1daa2}
+.history-item span{font-size:11px;color:#d7e2da}
+.history-item small{font-size:10px;color:var(--muted)}
+@media(max-width:760px){.online-grid{grid-template-columns:1fr}.online-heading{align-items:flex-start;flex-direction:column}.connection-status{align-self:flex-start}}
+@media(max-width:500px){.online-card{padding:17px}.mode-nav{display:grid;grid-template-columns:1fr 1fr}.mode-button{padding:0 9px}.online-tabs{display:grid;grid-template-columns:1fr 1fr}.online-tab{padding:0 7px}.room-list-item{align-items:flex-start}.room-list-item .button{height:32px}.history-item{grid-template-columns:1fr}.history-item strong{grid-row:auto}.section-heading h2{font-size:19px}}

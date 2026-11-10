@@ -62,7 +62,11 @@ O SQL da tabela e das políticas de acesso está em [`supabase/profiles.sql`](su
 
 A tela apresenta um erro legível se o cliente JavaScript do Supabase não carregar ou se o projeto recusar o endereço de retorno. Se um erro mencionar redirect, confira a lista **Redirect URLs** acima. O email de confirmação depende das configurações de Auth e SMTP do projeto.
 
-O esquema PostgreSQL das salas, participantes, partidas e estatísticas está em [`supabase/rooms_and_history.sql`](supabase/rooms_and_history.sql). As tabelas permitem no máximo quatro assentos por sala, registram aposta/saldo atuais e guardam o saldo final e a colocação de cada jogador. As gravações ficam reservadas ao servidor; clientes autenticados leem apenas salas de que participam.
+O esquema PostgreSQL das salas, participantes, partidas e estatísticas está em [`supabase/rooms_and_history.sql`](supabase/rooms_and_history.sql). As tabelas permitem no máximo quatro assentos por sala, registram aposta/saldo atuais e guardam o saldo final e a colocação de cada jogador. As alterações são feitas por funções validadas no Postgres; o navegador não recebe permissão direta para gravar saldos ou resultados.
+
+O lobby online usa RPCs do Postgres para listar, criar, entrar e sair de salas. Supabase Realtime usa Broadcast para avisos de alteração e Presence para mostrar conexões ativas. As políticas de `realtime.messages` limitam canais de sala aos participantes autenticados. A configuração adicional está em [`supabase/room_realtime.sql`](supabase/room_realtime.sql). Se uma aba fechar inesperadamente, um heartbeat libera o assento após dois minutos sem atividade.
+
+O histórico é exibido na aba **Histórico** depois que houver partidas gravadas em `matches` e `match_players`. A mesa multiplayer ainda está em construção: a tela atual já permite descobrir/criar salas, entrar, acompanhar presença e sair; a distribuição compartilhada das cartas, apostas em tempo real e gravação automática do resultado serão conectadas na próxima etapa.
 
 ## Como jogar
 
@@ -96,7 +100,8 @@ python jogo_21.py
 ├── requirements.txt    # dependências Python
 ├── supabase/
 │   ├── profiles.sql          # tabela de perfis e políticas RLS
-│   └── rooms_and_history.sql # salas, partidas e estatísticas
+│   ├── rooms_and_history.sql # salas, partidas e estatísticas
+│   └── room_realtime.sql     # lobby, Presence, Broadcast e RPCs
 ├── templates/
 │   └── index.html       # mesa do jogo
 └── static/
