@@ -134,3 +134,29 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 30%,#1c
 .history-item small{font-size:10px;color:var(--muted)}
 @media(max-width:760px){.online-grid{grid-template-columns:1fr}.online-heading{align-items:flex-start;flex-direction:column}.connection-status{align-self:flex-start}}
 @media(max-width:500px){.online-card{padding:17px}.mode-nav{display:grid;grid-template-columns:1fr 1fr}.mode-button{padding:0 9px}.online-tabs{display:grid;grid-template-columns:1fr 1fr}.online-tab{padding:0 7px}.room-list-item{align-items:flex-start}.room-list-item .button{height:32px}.history-item{grid-template-columns:1fr}.history-item strong{grid-row:auto}.section-heading h2{font-size:19px}}
+.shared-game{margin-top:20px;padding-top:18px;border-top:1px solid #ffffff1c}
+.shared-game-heading h3{font-size:19px}
+.match-clock{padding:7px 10px;border:1px solid #e6c77b66;border-radius:8px;color:var(--gold);font-variant-numeric:tabular-nums}
+.shared-game-status{min-height:18px;color:#cbd9d0;font-size:11px;line-height:1.5}
+.start-match-button{width:100%;margin:4px 0 12px}
+.shared-dealer{margin:14px 0;border:1px solid #ffffff18;border-radius:10px;padding:12px;background:#0b271f99}
+.shared-hand-title{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#f1e5c4}
+.shared-hand-title span{color:var(--gold);font-weight:700}
+.shared-cards{min-height:88px;padding:7px 0 0}
+.shared-cards .playing-card{width:48px;height:68px;border-radius:6px;padding:5px;margin-left:5px}
+.shared-cards .playing-card+.playing-card{margin-left:5px}
+.shared-cards .card-corner{font-size:11px}.shared-cards .card-corner small{font-size:9px}.shared-cards .card-center{font-size:23px}
+.shared-player-hands{display:grid;gap:8px}
+.shared-player-hand{border:1px solid #ffffff18;border-radius:10px;padding:10px;background:#0d1b1680}
+.shared-player-hand.my-turn{border-color:#e6c77b99;box-shadow:0 0 15px #e6c77b15}
+.shared-player-hand h4{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;color:#e6eee8;font-size:11px}
+.shared-player-hand h4 span{font-weight:500;color:var(--muted);text-align:right}
+.shared-player-hand .shared-cards{min-height:76px}
+.shared-hand-result{margin-top:4px;color:var(--muted);font-size:10px}
+.shared-controls{display:grid;gap:8px;margin-top:12px}
+.shared-controls label{font-size:11px;color:var(--muted)}
+.shared-controls>div{display:flex;gap:8px}
+.shared-controls input{min-width:0;flex:1;height:40px;border:1px solid #40534b;border-radius:8px;background:#101b17;color:var(--cream);padding:0 12px;font:13px 'DM Sans',sans-serif}
+.shared-controls .button{height:40px}
+.shared-actions{grid-template-columns:1fr 1fr}
+@media(max-width:500px){.shared-actions{gap:7px}.shared-game-heading h3{font-size:17px}}

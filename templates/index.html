@@ -139,6 +139,26 @@
               <div class="section-heading roster-heading"><h3>Jogadores <span id="room-count"></span></h3><span class="online-count" id="online-count">0 online</span></div>
               <div class="room-roster" id="room-roster"></div>
               <p class="room-notice" id="room-notice" aria-live="polite">Aguardando mais jogadores entrarem na sala.</p>
+              <section class="shared-game" id="shared-game" hidden aria-label="Partida compartilhada">
+                <div class="section-heading shared-game-heading"><div><span class="eyebrow">MESA COMPARTILHADA</span><h3 id="shared-game-title">Pronta para jogar</h3></div><strong class="match-clock" id="match-clock">10:00</strong></div>
+                <p class="shared-game-status" id="shared-game-status" role="status" aria-live="polite"></p>
+                <button class="button button-primary start-match-button" id="start-match-button" type="button" hidden>Iniciar partida</button>
+                <div class="shared-board" id="shared-board" hidden>
+                  <div class="shared-dealer">
+                    <div class="shared-hand-title"><strong>Banca</strong><span id="shared-dealer-score">—</span></div>
+                    <div class="cards shared-cards" id="shared-dealer-cards" aria-label="Cartas do dealer"></div>
+                  </div>
+                  <div class="shared-player-hands" id="shared-player-hands"></div>
+                </div>
+                <form class="shared-controls" id="shared-bet-form" hidden>
+                  <label for="shared-bet-input">Sua aposta para a rodada</label>
+                  <div><input id="shared-bet-input" type="number" min="1" step="1" value="10"><button class="button button-primary" type="submit">Apostar</button></div>
+                </form>
+                <div class="shared-controls shared-actions" id="shared-action-controls" hidden>
+                  <button class="button button-hit" id="shared-hit-button" type="button">Comprar carta</button>
+                  <button class="button button-stand" id="shared-stand-button" type="button">Parar</button>
+                </div>
+              </section>
             </section>
           </div>
 

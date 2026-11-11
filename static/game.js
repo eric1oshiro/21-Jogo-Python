@@ -33,6 +33,12 @@ let activeRoomId = null;
 let roomHeartbeat = null;
 let presenceUsers = new Map();
 let onlineInitializedUser = null;
+let latestRoomData = null;
+let latestSharedMatch = null;
+let matchEndTimer = null;
+let turnTimeoutTimer = null;
+let roomRefreshTimer = null;
+let finishedHistoryLoadedRoom = null;
 
 function showAuthMessage(message, isError = false) {
   const element = document.querySelector('#auth-message');
@@ -350,11 +356,37 @@ async function initializeOnline() {
       }
     });
   void loadHistory();
+  await restoreMyRoom();
+}
+
+async function restoreMyRoom() {
+  const { data: membership, error } = await supabase.from('room_players')
+    .select('room_id')
+    .eq('user_id', signedInUser.id)
+    .is('left_at', null)
+    .order('joined_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !membership) return;
+  const { data: room } = await supabase.from('rooms').select('id, status')
+    .eq('id', membership.room_id).maybeSingle();
+  if (room && ['waiting','playing'].includes(room.status) && !activeRoomId) {
+    await enterRoom(room.id, 'rejoined');
+  }
 }
 
 async function closeOnlineChannels() {
   if (roomHeartbeat) window.clearInterval(roomHeartbeat);
+  if (matchEndTimer) window.clearTimeout(matchEndTimer);
+  if (turnTimeoutTimer) window.clearTimeout(turnTimeoutTimer);
+  if (roomRefreshTimer) window.clearTimeout(roomRefreshTimer);
   roomHeartbeat = null;
+  matchEndTimer = null;
+  turnTimeoutTimer = null;
+  roomRefreshTimer = null;
+  latestRoomData = null;
+  latestSharedMatch = null;
+  finishedHistoryLoadedRoom = null;
   presenceUsers = new Map();
   const channels = [roomChannel, lobbyChannel].filter(Boolean);
   roomChannel = null;
@@ -419,16 +451,18 @@ async function enterRoom(roomId, eventKind) {
     })
     .on('broadcast', { event: 'room_event' }, ({ payload }) => {
       if (payload?.nickname && payload.nickname !== onlineNickname) {
-        const verb = payload.kind === 'joined' ? 'entrou na sala.' : 'saiu da sala.';
+        const verb = ['joined','rejoined'].includes(payload.kind) ? 'entrou na sala.' : 'saiu da sala.';
         document.querySelector('#room-notice').textContent = `${payload.nickname} ${verb}`;
       }
       void refreshRoom();
       void loadRooms();
     })
+    .on('broadcast', { event: 'match_changed' }, () => { queueSharedMatchRefresh(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${roomId}` }, () => {
       void refreshRoom();
       void loadRooms();
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'room_round_players', filter: `room_id=eq.${roomId}` }, () => { queueSharedMatchRefresh(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, () => { void refreshRoom(); })
     .subscribe(async (status, error) => {
       if (status === 'SUBSCRIBED') {
@@ -462,6 +496,10 @@ function renderPresence() {
     const dot = row.querySelector('.player-presence');
     if (dot) dot.textContent = online ? 'Online' : 'Desconectado';
   });
+  if (latestRoomData?.status === 'waiting') {
+    const connectedCount = document.querySelectorAll('#room-roster .is-online').length;
+    document.querySelector('#start-match-button').hidden = latestRoomData.host_user_id !== signedInUser?.id || connectedCount < 2;
+  }
 }
 
 async function refreshRoom() {
@@ -475,6 +513,7 @@ async function refreshRoom() {
     document.querySelector('#room-notice').textContent = `Não consegui atualizar a sala: ${(roomError || playersError).message}`;
     return;
   }
+  latestRoomData = room;
   if (!room) {
     document.querySelector('#room-detail').hidden = true;
     return;
@@ -501,7 +540,175 @@ async function refreshRoom() {
   document.querySelector('#room-notice').textContent = room.status === 'waiting'
     ? `Sala de ${Math.round(room.duration_seconds / 60)} minutos. A sincronização de presença está ativa.`
     : 'A partida foi iniciada.';
+  document.querySelector('#shared-game').hidden = false;
+  document.querySelector('#leave-room').disabled = room.status === 'playing';
+  document.querySelector('#leave-room').textContent = room.status === 'playing' ? 'Partida em andamento' : 'Sair da sala';
+  if (room.status === 'waiting') {
+    const startButton = document.querySelector('#start-match-button');
+    const canStart = room.host_user_id === signedInUser.id && players.filter((player) => presenceUsers.has(player.user_id)).length >= 2;
+    startButton.hidden = !canStart;
+    document.querySelector('#shared-game-status').textContent = room.host_user_id === signedInUser.id
+      ? (canStart ? 'A sala está pronta. A partida dura até 10 minutos; o anfitrião pode iniciar.' : 'São necessários dois jogadores conectados para iniciar.')
+      : 'Aguardando o anfitrião iniciar a partida.';
+  }
   renderPresence();
+  if (room.status === 'playing' || room.status === 'finished') await loadSharedMatch();
+}
+
+function queueSharedMatchRefresh() {
+  if (roomRefreshTimer) return;
+  roomRefreshTimer = window.setTimeout(() => {
+    roomRefreshTimer = null;
+    void loadSharedMatch();
+  }, 100);
+}
+
+async function loadSharedMatch() {
+  if (!activeRoomId || !signedInUser) return;
+  const { data, error } = await supabase.rpc('get_shared_match_state', { p_room_id: activeRoomId });
+  if (error) {
+    document.querySelector('#shared-game-status').textContent = `Não consegui sincronizar a partida: ${error.message}`;
+    document.querySelector('#shared-game-status').classList.add('is-error');
+    return;
+  }
+  if (!data) return;
+  latestSharedMatch = data;
+  document.querySelector('#shared-game-status').classList.remove('is-error');
+  renderSharedMatch(data);
+  scheduleMatchWatchdogs(data);
+}
+
+function scheduleMatchWatchdogs(state) {
+  if (matchEndTimer) window.clearTimeout(matchEndTimer);
+  if (turnTimeoutTimer) window.clearTimeout(turnTimeoutTimer);
+  if (state.status === 'finished') return;
+  const endDelay = Math.max(0, new Date(state.ends_at).getTime() - Date.now()) + 100;
+  matchEndTimer = window.setTimeout(() => { void loadSharedMatch(); }, endDelay);
+  if (state.status === 'playing' && state.turn_started_at) {
+    const turnDelay = Math.max(0, new Date(state.turn_started_at).getTime() + 31000 - Date.now());
+    turnTimeoutTimer = window.setTimeout(() => { void loadSharedMatch(); }, turnDelay);
+  }
+}
+
+function renderSharedMatch(state) {
+  const root = document.querySelector('#shared-game');
+  root.hidden = false;
+  const me = state.players.find((player) => player.user_id === signedInUser.id);
+  const myHand = state.hands.find((hand) => hand.user_id === signedInUser.id);
+  const isHost = state.host_user_id === signedInUser.id;
+  const canStart = state.room_status === 'waiting' && isHost && state.players.filter((player) => player.online).length >= 2;
+  const startButton = document.querySelector('#start-match-button');
+  startButton.hidden = !canStart;
+  document.querySelector('#shared-game-title').textContent = state.status === 'finished'
+    ? 'Partida encerrada' : `Rodada ${state.round_number}`;
+  document.querySelector('#shared-board').hidden = state.status === 'betting';
+
+  const secondsLeft = Math.max(0, Math.ceil((new Date(state.ends_at).getTime() - Date.now()) / 1000));
+  document.querySelector('#match-clock').textContent = `${String(Math.floor(secondsLeft / 60)).padStart(2,'0')}:${String(secondsLeft % 60).padStart(2,'0')}`;
+
+  const messages = {
+    betting: 'Todos escolhem sua aposta. As cartas são distribuídas quando todos apostarem.',
+    playing: state.current_turn_user_id === signedInUser.id ? 'Sua vez: compre uma carta ou pare.' : `Vez de ${state.players.find((player) => player.user_id === state.current_turn_user_id)?.nickname || 'outro jogador'}.`,
+    round_complete: 'Rodada concluída. Aposte para iniciar a próxima rodada.',
+    finished: state.winner_user_id === signedInUser.id ? 'Você terminou com o maior saldo e venceu a partida!' : state.winner_user_id ? `${state.players.find((player) => player.user_id === state.winner_user_id)?.nickname || 'Outro jogador'} venceu a partida.` : 'A partida terminou empatada no maior saldo.',
+  };
+  document.querySelector('#shared-game-status').textContent = state.status === 'finished'
+    ? `${messages.finished} Seu saldo: ${money(Number(me?.balance || 0))}.`
+    : messages[state.status] || 'Partida em andamento.';
+  document.querySelector('#shared-dealer-score').textContent = state.dealer_total ?? (state.dealer_hand.length ? '•' : '—');
+  renderCards(document.querySelector('#shared-dealer-cards'), state.dealer_hand || []);
+
+  const hands = document.querySelector('#shared-player-hands');
+  hands.replaceChildren();
+  state.players.forEach((player) => {
+    const hand = state.hands.find((entry) => entry.user_id === player.user_id);
+    const card = document.createElement('article');
+    card.className = `shared-player-hand${state.current_turn_user_id === player.user_id ? ' my-turn' : ''}`;
+    const heading = document.createElement('h4');
+    const name = document.createElement('strong');
+    name.textContent = `${player.nickname}${player.user_id === signedInUser.id ? ' (você)' : ''}`;
+    const balance = document.createElement('span');
+    balance.textContent = `Saldo ${money(Number(player.balance))} · aposta ${money(Number(hand?.bet || player.current_bet || 0))}`;
+    heading.append(name, balance);
+    const cards = document.createElement('div');
+    cards.className = 'cards shared-cards';
+    renderCards(cards, hand?.hand || []);
+    const result = document.createElement('div');
+    result.className = 'shared-hand-result';
+    const statusLabels = { waiting_bet:'Aguardando aposta', bet_placed:'Aposta confirmada', playing:'Jogando', stood:'Parou', bust:'Estourou', settled:'Rodada resolvida' };
+    if (hand?.status === 'settled') {
+      const returnValue = Number(hand.payout || 0);
+      const wager = Number(hand.bet || 0);
+      result.textContent = returnValue > wager ? `Ganhou ${money(returnValue - wager)} de lucro` : returnValue === wager && wager > 0 ? 'Empatou; aposta devolvida' : 'Perdeu a aposta';
+    } else {
+      result.textContent = statusLabels[hand?.status] || (player.balance <= 0 ? 'Sem saldo para apostar' : 'Aguardando próxima rodada');
+    }
+    card.append(heading, cards, result);
+    hands.append(card);
+  });
+
+  const betForm = document.querySelector('#shared-bet-form');
+  const canBet = me && me.balance > 0 && (
+    (state.status === 'betting' && myHand?.status === 'waiting_bet') || state.status === 'round_complete'
+  );
+  betForm.hidden = !canBet;
+  const betInput = document.querySelector('#shared-bet-input');
+  if (me) betInput.max = Number(me.balance);
+  if (me && Number(betInput.value) > Number(me.balance)) betInput.value = Math.floor(Number(me.balance));
+  document.querySelector('#shared-action-controls').hidden = state.status !== 'playing' || state.current_turn_user_id !== signedInUser.id;
+  startButton.disabled = !canStart;
+  if (state.status === 'finished' && finishedHistoryLoadedRoom !== state.room_id) {
+    finishedHistoryLoadedRoom = state.room_id;
+    void loadHistory();
+  }
+}
+
+async function broadcastMatchChange() {
+  if (roomChannel) await roomChannel.send({ type: 'broadcast', event: 'match_changed', payload: { at: new Date().toISOString() } });
+}
+
+async function startSharedMatch() {
+  const button = document.querySelector('#start-match-button');
+  button.disabled = true;
+  const { error } = await supabase.rpc('start_shared_match', { p_room_id: activeRoomId });
+  button.disabled = false;
+  if (error) {
+    document.querySelector('#shared-game-status').textContent = error.message;
+    document.querySelector('#shared-game-status').classList.add('is-error');
+    return;
+  }
+  await broadcastMatchChange();
+  await refreshRoom();
+}
+
+async function submitSharedBet(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const bet = Number(document.querySelector('#shared-bet-input').value);
+  const { error } = await supabase.rpc('place_shared_bet', { p_room_id: activeRoomId, p_bet: bet });
+  button.disabled = false;
+  if (error) {
+    document.querySelector('#shared-game-status').textContent = error.message;
+    document.querySelector('#shared-game-status').classList.add('is-error');
+    return;
+  }
+  await broadcastMatchChange();
+  await loadSharedMatch();
+}
+
+async function submitSharedAction(action) {
+  const buttons = document.querySelectorAll('#shared-action-controls button');
+  buttons.forEach((button) => { button.disabled = true; });
+  const { error } = await supabase.rpc('shared_player_action', { p_room_id: activeRoomId, p_action: action });
+  buttons.forEach((button) => { button.disabled = false; });
+  if (error) {
+    document.querySelector('#shared-game-status').textContent = error.message;
+    document.querySelector('#shared-game-status').classList.add('is-error');
+    return;
+  }
+  await broadcastMatchChange();
+  await loadSharedMatch();
 }
 
 async function joinRoom(room) {
@@ -616,6 +823,10 @@ document.querySelector('#refresh-rooms').addEventListener('click', () => { void 
 document.querySelector('#refresh-history').addEventListener('click', () => { void loadHistory(); });
 document.querySelector('#create-room-form').addEventListener('submit', (event) => { void createRoom(event); });
 document.querySelector('#leave-room').addEventListener('click', () => { void leaveRoom(); });
+document.querySelector('#start-match-button').addEventListener('click', () => { void startSharedMatch(); });
+document.querySelector('#shared-bet-form').addEventListener('submit', (event) => { void submitSharedBet(event); });
+document.querySelector('#shared-hit-button').addEventListener('click', () => { void submitSharedAction('hit'); });
+document.querySelector('#shared-stand-button').addEventListener('click', () => { void submitSharedAction('stand'); });
 
 document.querySelector('#start-button').addEventListener('click', () => {
   const bet = Number(document.querySelector('#bet-input').value);

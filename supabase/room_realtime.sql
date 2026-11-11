@@ -24,6 +24,11 @@ $$;
 revoke all on function private.is_active_room_member(uuid) from public, anon, authenticated;
 grant execute on function private.is_active_room_member(uuid) to authenticated;
 
+drop policy if exists "Room members can read live player balances and bets" on public.room_players;
+create policy "Active room members can read live player balances and bets"
+  on public.room_players for select to authenticated
+  using ((select private.is_active_room_member(room_id)));
+
 create or replace function public.list_open_rooms()
 returns table (
   id uuid, code varchar(6), host_nickname text, player_count bigint,
@@ -39,6 +44,15 @@ begin
   from public.rooms r
   where rp.room_id = r.id and r.status = 'waiting'
     and rp.left_at is null and rp.last_seen_at < now() - interval '2 minutes';
+  update public.rooms r
+  set host_user_id = (
+    select rp.user_id from public.room_players rp
+    where rp.room_id = r.id and rp.left_at is null
+    order by rp.joined_at, rp.seat_number limit 1
+  )
+  where r.status = 'waiting'
+    and not exists (select 1 from public.room_players rp where rp.room_id = r.id and rp.user_id = r.host_user_id and rp.left_at is null)
+    and exists (select 1 from public.room_players rp where rp.room_id = r.id and rp.left_at is null);
   return query
   select r.id, r.code, p.nickname, count(rp.user_id)::bigint,
          r.max_players, r.duration_seconds, r.created_at
@@ -99,6 +113,10 @@ begin
   where room_id = p_room_id and left_at is null and last_seen_at < now() - interval '2 minutes';
   if exists (select 1 from public.room_players where room_id = p_room_id and user_id = v_user_id and left_at is null) then
     update public.room_players set last_seen_at = now() where room_id = p_room_id and user_id = v_user_id;
+    update public.rooms r set host_user_id = v_user_id
+    where r.id = p_room_id and not exists (
+      select 1 from public.room_players rp where rp.room_id = p_room_id and rp.user_id = r.host_user_id and rp.left_at is null
+    );
     return;
   end if;
   select seats.seat::smallint into v_seat
@@ -116,6 +134,10 @@ begin
     insert into public.room_players (room_id, user_id, seat_number, last_seen_at)
     values (p_room_id, v_user_id, v_seat, now());
   end if;
+  update public.rooms r set host_user_id = v_user_id
+  where r.id = p_room_id and not exists (
+    select 1 from public.room_players rp where rp.room_id = p_room_id and rp.user_id = r.host_user_id and rp.left_at is null
+  );
 end;
 $$;
 
@@ -168,6 +190,37 @@ grant execute on function public.create_room(smallint, smallint) to authenticate
 grant execute on function public.join_room(uuid) to authenticated;
 grant execute on function public.leave_room(uuid) to authenticated;
 grant execute on function public.touch_room(uuid) to authenticated;
+
+-- Permite sair de salas encerradas sem alterar os resultados históricos.
+create or replace function private.leave_room(p_room_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := (select auth.uid());
+  v_host_id uuid;
+  v_room_status text;
+  v_next_host uuid;
+begin
+  if v_user_id is null then raise exception 'É necessário entrar na conta.'; end if;
+  select host_user_id, status into v_host_id, v_room_status
+  from public.rooms where id = p_room_id and status in ('waiting','finished') for update;
+  if not found then raise exception 'Não é possível sair durante uma partida em andamento.'; end if;
+  update public.room_players set left_at = now(), current_bet = 0
+  where room_id = p_room_id and user_id = v_user_id and left_at is null;
+  if not found then raise exception 'Você não está nesta sala.'; end if;
+  if v_room_status = 'finished' then return; end if;
+  if v_host_id = v_user_id then
+    select user_id into v_next_host from public.room_players
+    where room_id = p_room_id and left_at is null order by joined_at, seat_number limit 1;
+    if v_next_host is null then delete from public.rooms where id = p_room_id;
+    else update public.rooms set host_user_id = v_next_host where id = p_room_id;
+    end if;
+  end if;
+end;
+$$;
 
 drop policy if exists "authenticated room members can read and write private room topics" on realtime.messages;
 drop policy if exists "authenticated users can read and write lobby broadcasts" on realtime.messages;

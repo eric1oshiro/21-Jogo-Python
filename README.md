@@ -66,7 +66,9 @@ O esquema PostgreSQL das salas, participantes, partidas e estatísticas está em
 
 O lobby online usa RPCs do Postgres para listar, criar, entrar e sair de salas. Supabase Realtime usa Broadcast para avisos de alteração e Presence para mostrar conexões ativas. As políticas de `realtime.messages` limitam canais de sala aos participantes autenticados. A configuração adicional está em [`supabase/room_realtime.sql`](supabase/room_realtime.sql). Se uma aba fechar inesperadamente, um heartbeat libera o assento após dois minutos sem atividade.
 
-O histórico é exibido na aba **Histórico** depois que houver partidas gravadas em `matches` e `match_players`. A mesa multiplayer ainda está em construção: a tela atual já permite descobrir/criar salas, entrar, acompanhar presença e sair; a distribuição compartilhada das cartas, apostas em tempo real e gravação automática do resultado serão conectadas na próxima etapa.
+O histórico é exibido na aba **Histórico** depois que houver partidas gravadas em `matches` e `match_players`. No multiplayer, o anfitrião inicia quando há pelo menos dois jogadores conectados. Cada jogador aposta, recebe sua mão e joga em turnos contra o dealer; todos acompanham cartas e saldos da sala em tempo real. A partida dura até 5 ou 10 minutos conforme a sala. O maior saldo vence; empate no maior saldo registra empate. Turnos sem ação são encerrados após 30 segundos e a partida é finalizada na primeira atualização depois do limite de tempo.
+
+O estado e as regras da mesa compartilhada estão em [`supabase/shared_blackjack.sql`](supabase/shared_blackjack.sql). Os controles de aposta, compra e parada chamam RPCs transacionais; as cartas e os saldos são calculados no Postgres. Broadcast e as mudanças seguras dos jogadores atualizam a interface; o baralho restante fica fora da API e a carta do dealer é ocultada até o fim da rodada.
 
 ## Como jogar
 
@@ -101,7 +103,8 @@ python jogo_21.py
 ├── supabase/
 │   ├── profiles.sql          # tabela de perfis e políticas RLS
 │   ├── rooms_and_history.sql # salas, partidas e estatísticas
-│   └── room_realtime.sql     # lobby, Presence, Broadcast e RPCs
+│   ├── room_realtime.sql     # lobby, Presence, Broadcast e RPCs
+│   └── shared_blackjack.sql  # motor de blackjack compartilhado
 ├── templates/
 │   └── index.html       # mesa do jogo
 └── static/
