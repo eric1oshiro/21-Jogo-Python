@@ -49,6 +49,8 @@ Um jogo simples de 21 (Blackjack) feito em Python. Jogue no navegador contra o d
 
 A versão web usa Supabase Auth para cadastro e login com email e senha. O cadastro pede uma senha de pelo menos 8 caracteres e um apelido de 3 a 20 caracteres. O apelido fica na tabela `public.profiles`; a senha é gerenciada pelo Supabase Auth e não é armazenada pelo jogo.
 
+Na tela de login, **Esqueceu sua senha?** envia um link de recuperação ao email. Ao abrir o link, a pessoa escolhe e confirma uma nova senha. O endereço de retorno precisa estar permitido na configuração de Redirect URLs do Supabase.
+
 Para receber o link de confirmação quando estiver rodando localmente, adicione estes endereços em **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**:
 
 ```text

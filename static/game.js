@@ -26,6 +26,7 @@ const supabase = createClient(url, publishableKey, {
 const money = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 let authViewVersion = 0;
 let signedInUser = null;
+let passwordRecoveryMode = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
 let onlineNickname = '';
 let lobbyChannel = null;
 let roomChannel = null;
@@ -69,20 +70,61 @@ function authErrorMessage(error) {
 
 function setAuthMode(mode) {
   const isLogin = mode === 'login';
+  document.querySelector('#auth-tabs').hidden = false;
   document.querySelector('#login-form').hidden = !isLogin;
   document.querySelector('#signup-form').hidden = isLogin;
+  document.querySelector('#forgot-password-form').hidden = true;
+  document.querySelector('#new-password-form').hidden = true;
+  document.querySelector('#forgot-password-link').hidden = !isLogin;
   document.querySelector('#login-tab').classList.toggle('active', isLogin);
   document.querySelector('#signup-tab').classList.toggle('active', !isLogin);
   document.querySelector('#login-tab').setAttribute('aria-selected', String(isLogin));
   document.querySelector('#signup-tab').setAttribute('aria-selected', String(!isLogin));
   document.querySelector('#auth-title').textContent = isLogin ? 'Entre no jogo' : 'Crie sua conta';
+  document.querySelector('#auth-intro').textContent = isLogin
+    ? 'Entre na sua conta ou crie uma para guardar seu apelido.'
+    : 'Crie uma conta com email, senha e um apelido para jogar online.';
   showAuthMessage('');
 }
 
 function showAuthScreen() {
+  if (passwordRecoveryMode) {
+    showNewPasswordScreen();
+    return;
+  }
   document.querySelector('#auth-panel').hidden = false;
   document.querySelector('#profile-panel').hidden = true;
   document.querySelector('#game-app').hidden = true;
+}
+
+function showForgotPasswordScreen() {
+  document.querySelector('#auth-panel').hidden = false;
+  document.querySelector('#profile-panel').hidden = true;
+  document.querySelector('#game-app').hidden = true;
+  document.querySelector('#auth-tabs').hidden = true;
+  document.querySelector('#login-form').hidden = true;
+  document.querySelector('#signup-form').hidden = true;
+  document.querySelector('#new-password-form').hidden = true;
+  document.querySelector('#forgot-password-form').hidden = false;
+  document.querySelector('#auth-title').textContent = 'Recuperar senha';
+  document.querySelector('#auth-intro').textContent = 'Informe o email da sua conta e enviaremos um link para criar uma nova senha.';
+  document.querySelector('#recovery-email').value = document.querySelector('#login-email').value.trim();
+  showAuthMessage('');
+}
+
+function showNewPasswordScreen() {
+  passwordRecoveryMode = true;
+  document.querySelector('#auth-panel').hidden = false;
+  document.querySelector('#profile-panel').hidden = true;
+  document.querySelector('#game-app').hidden = true;
+  document.querySelector('#auth-tabs').hidden = true;
+  document.querySelector('#login-form').hidden = true;
+  document.querySelector('#signup-form').hidden = true;
+  document.querySelector('#forgot-password-form').hidden = true;
+  document.querySelector('#new-password-form').hidden = false;
+  document.querySelector('#auth-title').textContent = 'Crie uma nova senha';
+  document.querySelector('#auth-intro').textContent = 'Escolha uma senha segura com pelo menos 8 caracteres.';
+  showAuthMessage('Link confirmado. Defina sua nova senha.');
 }
 
 function showProfileScreen(user) {
@@ -105,6 +147,10 @@ async function showGameScreen(nickname) {
 }
 
 async function routeSession(session) {
+  if (passwordRecoveryMode) {
+    showNewPasswordScreen();
+    return;
+  }
   const version = ++authViewVersion;
   signedInUser = session?.user || null;
   if (!signedInUser) {
@@ -146,6 +192,11 @@ async function runAuthForm(form, action) {
 
 document.querySelector('#login-tab').addEventListener('click', () => setAuthMode('login'));
 document.querySelector('#signup-tab').addEventListener('click', () => setAuthMode('signup'));
+document.querySelector('#forgot-password-link').addEventListener('click', showForgotPasswordScreen);
+document.querySelector('#back-to-login-from-recovery').addEventListener('click', () => {
+  document.querySelector('#login-email').value = document.querySelector('#recovery-email').value.trim();
+  setAuthMode('login');
+});
 
 document.querySelector('#login-form').addEventListener('submit', (event) => {
   event.preventDefault();
@@ -194,6 +245,43 @@ document.querySelector('#signup-form').addEventListener('invalid', (event) => {
   }
 }, true);
 
+document.querySelector('#new-password-form').addEventListener('invalid', (event) => {
+  if (event.target.validity.tooShort) showAuthMessage('A nova senha precisa ter pelo menos 8 caracteres.', true);
+}, true);
+
+document.querySelector('#forgot-password-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  runAuthForm(event.currentTarget, async (formData) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      String(formData.get('email')).trim(),
+      { redirectTo: window.location.origin },
+    );
+    if (error) throw error;
+    showAuthMessage('Se esse email estiver cadastrado, enviaremos um link para redefinir sua senha. Confira também a pasta de spam.');
+  });
+});
+
+document.querySelector('#new-password-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  runAuthForm(event.currentTarget, async (formData) => {
+    const password = String(formData.get('password'));
+    const confirmation = String(formData.get('password-confirm'));
+    if (password.length < 8) throw new Error('A nova senha precisa ter pelo menos 8 caracteres.');
+    if (password !== confirmation) throw new Error('As senhas não coincidem. Confira os dois campos.');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+
+    passwordRecoveryMode = false;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw new Error(`Senha atualizada, mas não consegui encerrar a sessão de recuperação: ${signOutError.message}`);
+    await closeOnlineChannels();
+    signedInUser = null;
+    showAuthScreen();
+    setAuthMode('login');
+    showAuthMessage('Senha alterada com sucesso. Entre com sua nova senha.');
+  });
+});
+
 document.querySelector('#profile-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!signedInUser) return;
@@ -240,13 +328,23 @@ async function signOut() {
 document.querySelector('#signout-button').addEventListener('click', signOut);
 document.querySelector('#profile-signout').addEventListener('click', signOut);
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  queueMicrotask(() => { void routeSession(session); });
+supabase.auth.onAuthStateChange((event, session) => {
+  queueMicrotask(() => {
+    if (event === 'PASSWORD_RECOVERY' || passwordRecoveryMode) {
+      showNewPasswordScreen();
+      return;
+    }
+    void routeSession(session);
+  });
 });
 
 supabase.auth.getSession().then(({ data, error }) => {
   if (error) {
     showAuthMessage(`Não consegui conectar ao Supabase: ${error.message}`, true);
+    return;
+  }
+  if (passwordRecoveryMode) {
+    showNewPasswordScreen();
     return;
   }
   return routeSession(data.session);

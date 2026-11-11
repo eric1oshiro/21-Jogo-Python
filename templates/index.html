@@ -17,9 +17,9 @@
           <a class="brand auth-brand" href="/" aria-label="Jogo de 21, início"><span class="brand-mark">21</span><span>Jogo de <strong>21</strong></span></a>
           <span class="eyebrow auth-eyebrow">SUA MESA ESTÁ ESPERANDO</span>
           <h1 id="auth-title">Entre no jogo</h1>
-          <p class="auth-intro">Entre na sua conta ou crie uma para guardar seu apelido.</p>
+          <p class="auth-intro" id="auth-intro">Entre na sua conta ou crie uma para guardar seu apelido.</p>
 
-          <div class="auth-tabs" role="tablist" aria-label="Acesso à conta">
+          <div class="auth-tabs" id="auth-tabs" role="tablist" aria-label="Acesso à conta">
             <button class="auth-tab active" id="login-tab" type="button" role="tab" aria-selected="true">Entrar</button>
             <button class="auth-tab" id="signup-tab" type="button" role="tab" aria-selected="false">Criar conta</button>
           </div>
@@ -30,6 +30,7 @@
             <label for="login-password">Senha</label>
             <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
             <button class="button button-primary auth-submit" type="submit">Entrar</button>
+            <button class="auth-link" id="forgot-password-link" type="button">Esqueceu sua senha?</button>
           </form>
 
           <form id="signup-form" class="auth-form" hidden>
@@ -40,6 +41,21 @@
             <label for="signup-password">Senha <span class="label-hint">mínimo de 8 caracteres</span></label>
             <input id="signup-password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Crie uma senha">
             <button class="button button-primary auth-submit" type="submit">Criar conta</button>
+          </form>
+
+          <form id="forgot-password-form" class="auth-form" hidden>
+            <label for="recovery-email">Email da sua conta</label>
+            <input id="recovery-email" name="email" type="email" autocomplete="email" required placeholder="voce@email.com">
+            <button class="button button-primary auth-submit" type="submit">Enviar link de recuperação</button>
+            <button class="auth-link" id="back-to-login-from-recovery" type="button">Voltar para entrar</button>
+          </form>
+
+          <form id="new-password-form" class="auth-form" hidden>
+            <label for="new-password">Nova senha <span class="label-hint">mínimo de 8 caracteres</span></label>
+            <input id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Digite sua nova senha">
+            <label for="new-password-confirm">Confirme a nova senha</label>
+            <input id="new-password-confirm" name="password-confirm" type="password" minlength="8" autocomplete="new-password" required placeholder="Digite a senha novamente">
+            <button class="button button-primary auth-submit" type="submit">Salvar nova senha</button>
           </form>
           <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
           <p class="auth-disclaimer">Contas gratuitas para jogar com fichas fictícias.</p>
